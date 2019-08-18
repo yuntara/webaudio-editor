@@ -14,6 +14,11 @@ interface Range {
     start: number;
     end: number;
 }
+interface SelectedRange extends Range{
+    channels:number[];
+    
+    
+}
 /** Helloコンポーネントのstateの型定義 */
 interface WaveViewState {
     range: Range
@@ -61,14 +66,16 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
             const range = this.state.range;
             const channelHeight = height / channels.length;
             let n = 0;
+            const span=20;
+            
             for (let channel of channels) {
                 for (let i = 0; i < width; i++) {
 
                     var pos = Math.floor(range.start + (range.end - range.start) * (i / width));
                     if (pos >= 0 && pos < channel.length) {
                         let v = 0;
-                        for (let j = 0; j < 20; j++) {
-                            const nv = channel[pos + j - 10];
+                        for (let j = 0; j < span; j++) {
+                            const nv = channel[pos + j - Math.floor(span/w)];
                             if (Math.abs(nv) > Math.abs(v)) {
                                 v = nv;
                             }
