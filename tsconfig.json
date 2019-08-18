@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+      "outDir": "./dist/",
+      "sourceMap": true,
+      "strictNullChecks": true,
+      "strictPropertyInitialization": true,
+      "noImplicitAny": true,
+      "noImplicitReturns": true,
+      "module": "commonjs",
+      "target": "esnext",
+      "jsx": "react",
+      "lib":["es6","dom","es5","es7"]
+    },
+    "include": [
+      "./src/**/*"
+    ]
+  }
