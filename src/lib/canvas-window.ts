@@ -4,14 +4,19 @@ class CanvasWindowDesktop extends CanvasWindow{
     private focus:CanvasWindow;
     private focusizer = ["click","mouseDown"];
     constructor(private canvas:HTMLCanvasElement){
-        this.ctx = canvas.getContext("2d");
-        this.area = new Area(this.ctx,0,0,canvas.width,canvas.height);
-        this.parent = null;
+
+        const ctx = canvas.getContext("2d");
+         if(!ctx){
+             throw new Error("cannot get context");
+         }
+        super(null,new Area(ctx,0,0,canvas.width,canvas.height));
+        this.ctx = ctx;
         this.focus = this;
+
     }
-    handle(event:string,...args:any[]){
+    public handle(event:string,...args:any[]){
         if(!this.focus || this.focusizer.includes(event)){
-            super.handle(event,...args);
+            this.focus =(super.handle as any)(event,...args);
         }else{
             if(this.focus){
                 this.focus.doEvent(event,...args);
@@ -26,7 +31,7 @@ interface IDrawable{
 interface IArea{
     x:number;
     y:number;
-    width:numbgit add .//#endregion
+    width:number;//#endregion
     height:number;
 }
 class Area implements IArea,IDrawable{
@@ -61,32 +66,48 @@ class Area implements IArea,IDrawable{
               y >=this.y && y <= this.y+this.height;
     }
 
+    public static from(area : Area){
+        let res = new Area(area.ctx,area.x,area.y,area.width,area.height);
+        return res;
+    }
+
 }
 class CanvasWindow implements IArea{
 
     public area:Area;
     protected children:CanvasWindow[]=[];
-    protected handlers:{};
+    protected handlers:{[event:string]:(...args:any[])=>void};
 
-    private getParents*(){
+    private * getParents(){
         let parent = this.parent;
-
+        while(parent){
+            yield parent;
+            parent = parent.parent;
+        }
     }
-    constructor(protected parent:CanvasWindow){
-        this.area = Area.from(parent.area);
-        parent.addChild(this);
+    constructor(protected parent:CanvasWindow|null,area?:Area){
+        this.handlers = {};
+        if(parent){
+          this.area = Area.from(parent.area);
+
+          parent.addChild(this);
+        }else if(area){
+           this.area = area;
+        }else{
+            throw new Error("no context provided");
+        }
     }
     public addChild(child:CanvasWindow){
         this.children.push(child);
 
     }
-    addHandler(event:string,handler:(...args:any[])=>any){
+    public addHandler(event:string,handler:(...args:any[])=>any){
         this.handlers[event] = handler;
     }
-    doEvent(event:string,...args:any[]){
+    public doEvent(event:string,...args:any[]){
         return this.handlers[event](...args);
     }
-    handle(event :string,x:number,y:number,...args:any[]){
+    public handle(event :string,x:number,y:number,...args:any[]):CanvasWindow{
         let child = this.getChildByArea(x,y);
         if(child === null){
             if(event in this.handlers){
@@ -100,7 +121,7 @@ class CanvasWindow implements IArea{
 
     }
 
-    getChildByArea(x:number,y:number){
+    protected getChildByArea(x:number,y:number){
         for(let child of this.children.reverse()){
             if(child.area.includes(x,y)){
                 return child;
