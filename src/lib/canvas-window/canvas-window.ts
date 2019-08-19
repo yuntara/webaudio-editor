@@ -1,5 +1,5 @@
 
-class CanvasWindowDesktop extends CanvasWindow{
+export class CanvasWindowDesktop extends CanvasWindow{
     private ctx : CanvasRenderingContext2D;
     private focus:CanvasWindow;
     private focusizer = ["click","mouseDown"];
@@ -34,7 +34,7 @@ interface IArea{
     width:number;//#endregion
     height:number;
 }
-class Area implements IArea,IDrawable{
+export class Area implements IArea,IDrawable{
 
     constructor(private ctx: CanvasRenderingContext2D,public x:number,public y:number,public width:number,public height :number){
 
@@ -72,7 +72,7 @@ class Area implements IArea,IDrawable{
     }
 
 }
-class CanvasWindow implements IArea{
+export class CanvasWindow implements IArea{
 
     public area:Area;
     protected children:CanvasWindow[]=[];
