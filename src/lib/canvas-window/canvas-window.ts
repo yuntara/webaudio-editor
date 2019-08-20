@@ -12,6 +12,9 @@ export class Area implements IArea, IDrawable {
 
     constructor(private ctx: CanvasRenderingContext2D, public x: number, public y: number, public width: number, public height: number) {
 
+       this.init();
+    }
+    protected init(){
 
     }
     public offset(area: IArea) {
