@@ -15,6 +15,8 @@ interface AudioEditorState {
     loaded: boolean;
     buffer: AudioBuffer | null;
     outputName: string;
+    audio: Audio | null;
+    play: boolean;
 }
 /** Helloコンポーネント */
 export default class AudioEditor extends React.Component<AudioEditorProps, AudioEditorState> {
@@ -26,7 +28,9 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
             inputName: '',
             outputName: '',
             buffer: null,
-            loaded: false
+            loaded: false,
+            play: false,
+            audio: null,
         };
         this.audio = new Audio();
         this.openFile = this.openFile.bind(this);
@@ -38,20 +42,24 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
         if (mp3) {
             console.log(mp3);
             this.buffer = await this.audio.open(mp3);
-            this.setState({ ...this.state, buffer: this.buffer, loaded: true });
+            this.setState({ ...this.state, buffer: this.buffer, audio: this.audio, loaded: true });
         }
     }
+    onend() {
+        this.setState({ ...this.state, play: false });
+    }
     async play(event: React.MouseEvent<HTMLButtonElement>) {
-        if (!this.buffer) { return; }
-        await this.audio.play(this.buffer);
+
+        this.setState({ ...this.state, play: !this.state.play });
     }
 
     render(): JSX.Element {
         return (
             <div>
                 <Button onClick={this.openFile} >Open</Button>
-                <Button onClick={this.play} disabled={!this.state.loaded}>Play</Button>
-                <WaveView width={640} height={320} source={this.state.buffer} />
+                <Button onClick={this.play} disabled={!this.state.loaded}>{this.state.play ? "Stop" : "Play"}</Button>
+                <br />
+                <WaveView width={800} height={480} onend={this.onend.bind(this)} audio={this.state.audio} play={this.state.play} source={this.state.buffer} />
             </div>
         );
     }

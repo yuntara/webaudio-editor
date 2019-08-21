@@ -8,13 +8,28 @@ interface IArea {
     width: number;//#endregion
     height: number;
 }
-export class Area implements IArea, IDrawable {
+export class Rect implements IArea {
+    constructor(public x: number, public y: number, public width: number, public height: number) {
 
-    constructor(private ctx: CanvasRenderingContext2D, public x: number, public y: number, public width: number, public height: number) {
-
-       this.init();
     }
-    protected init(){
+    public set(x: number, y: number, width: number, height: number) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+    public includes(x: number, y: number) {
+        return x >= this.x && x <= this.x + this.width &&
+            y >= this.y && y <= this.y + this.height;
+    }
+}
+export class Area extends Rect implements IArea, IDrawable {
+
+    constructor(private ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number) {
+        super(x, y, width, height);
+        this.init();
+    }
+    protected init() {
 
     }
     public offset(area: IArea) {
@@ -23,17 +38,46 @@ export class Area implements IArea, IDrawable {
     public getContext() {
         return this.ctx;
     }
+
     set fillStyle(fillStyle: string) {
         this.ctx.fillStyle = fillStyle
     }
-    set StrokeStyle(strokeStyle: string) {
+    set strokeStyle(strokeStyle: string) {
         this.ctx.strokeStyle = strokeStyle;
     }
     set lineWidth(lineWidth: number) {
         this.ctx.lineWidth = lineWidth;
     }
+    public clear() {
+        this.fillStyle = "rgb(255,255,255)";
+        this.fillRect(0, 0, this.width, this.height);
+    }
     public fillRect(x: number, y: number, width: number, height: number) {
         this.ctx.fillRect(this.x + x, this.y + y, width, height);
+    }
+    public beginPath() {
+        this.ctx.beginPath();
+    }
+    public closePath() {
+        this.ctx.closePath();
+    }
+    public stroke() {
+        this.ctx.stroke();
+    }
+    //context.font = "30px 'ＭＳ ゴシック'";
+    //context.textAlign = "left";
+    //context.textBaseline = "top";
+    public set font(font: string) {
+        this.ctx.font = font;
+    }
+    public set textAlign(align: CanvasTextAlign) {
+        this.ctx.textAlign = align;
+    }
+    public fillText(text: string, x: number, y: number, maxWidth?: number | undefined) {
+        this.ctx.fillText(text, this.x + x, this.y + y, maxWidth);
+    }
+    public set textBaseline(baseline: CanvasTextBaseline) {
+        this.ctx.textBaseline = baseline;
     }
     public moveTo(x: number, y: number) {
         this.ctx.moveTo(this.x + x, this.y + y);
@@ -41,10 +85,7 @@ export class Area implements IArea, IDrawable {
     public lineTo(x: number, y: number) {
         this.ctx.lineTo(this.x + x, this.y + y);
     }
-    public includes(x: number, y: number) {
-        return x >= this.x && x <= this.x + this.width &&
-            y >= this.y && y <= this.y + this.height;
-    }
+
 
     public static from(area: Area) {
         let res = new Area(area.ctx, area.x, area.y, area.width, area.height);
@@ -59,6 +100,7 @@ export class CanvasWindow {
     protected children: CanvasWindow[] = [];
     protected handlers: { [event: string]: (...args: any[]) => void };
 
+    private lastTime: Date = new Date();
     private * getParents() {
         let parent = this.parent;
         while (parent) {
@@ -66,6 +108,7 @@ export class CanvasWindow {
             parent = parent.parent;
         }
     }
+
     constructor(protected parent: CanvasWindow | null, area?: Area) {
         this.handlers = {};
         if (parent) {
@@ -77,6 +120,10 @@ export class CanvasWindow {
         } else {
             throw new Error("no context provided");
         }
+        this.init();
+    }
+    public init() {
+
     }
     public addChild(child: CanvasWindow) {
         this.children.push(child);
@@ -86,7 +133,16 @@ export class CanvasWindow {
         this.handlers[event] = handler;
     }
     public doEvent(event: string, ...args: any[]) {
-        return this.handlers[event](...args);
+        return this.handlers[event] && this.handlers[event](...args);
+    }
+    thinOut() {
+        const now = new Date();
+        if (this.lastTime.getTime() - now.getTime() < 1000) {
+            this.lastTime = now;
+            return false;
+        } else {
+            return true;
+        }
     }
     public handle(event: string, x: number, y: number, ...args: any[]): CanvasWindow {
         let child = this.getChildByArea(x, y);
@@ -110,9 +166,10 @@ export class CanvasWindow {
         }
         return null;
     }
-    render(area: IArea & IDrawable) {
+    render() {//area: IArea & IDrawable) {
+        this.area.clear();
         for (let child of this.children) {
-            child.render(child.area.offset(area));
+            child.render();//child.area.offset(area));
         }
     }
 }

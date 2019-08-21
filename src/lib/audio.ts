@@ -14,10 +14,20 @@ export default class Audio {
         //audioBuffer.copyToChannel();
         return audioBuffer;
     }
-    async play(buffer: AudioBuffer) {
+    play(buffer: AudioBuffer, pos: number = 0, duration: number | undefined = undefined, onend: () => void) {
         const source = this.ctx.createBufferSource();
         source.buffer = buffer;
         source.connect(this.ctx.destination);
-        source.start(0);
+        source.start(undefined, pos, duration);
+        if (onend) {
+            source.onended = onend;
+        }
+        return source;
+    }
+    currentTime() {
+        return this.ctx.currentTime;
+    }
+    getSecond(buffer: AudioBuffer, pos: number) {
+        return pos / buffer.sampleRate;
     }
 }
