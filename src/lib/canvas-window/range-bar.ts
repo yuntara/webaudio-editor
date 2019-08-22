@@ -8,10 +8,16 @@ enum MouseState {
     down = 1,
     up = 0
 }
+enum DragType {
+    move = 0,
+    leftsize = 1,
+    rightsize = 2
+}
 interface DragState {
     pos: number;
     start: number;
     end: number;
+    type: DragType;
 }
 export class RangeBar extends AutoScaleWindow {
     private range_: Range = { start: 0, end: 10 };
@@ -34,28 +40,95 @@ export class RangeBar extends AutoScaleWindow {
 
         return new Rect(32 + startx, 0, Math.max(10, endx - startx), this.area.height);
     }
-    mousedown(x: number, y: number) {
-        const rangeArea = this.getRangeArea();
-        if (rangeArea.includes(x, y)) {
+    getLeftSizeArea() {
+        const startx = (this.area.width - 64) * (this.range_.start - this.min) / (this.max - this.min);
 
+        return new Rect(32 + startx - 2, 0, 4, this.area.height);
+    }
+    getRightSizeArea() {
+        const startx = (this.area.width - 64) * (this.range_.start - this.min) / (this.max - this.min);
+
+        let endx = (this.area.width - 64) * (this.range_.end - this.min) / (this.max - this.min);
+        if (endx - startx < 10) {
+            endx = startx + 10;
+        }
+        return new Rect(32 + endx - 2, 0, 4, this.area.height);
+
+    }
+    mousedown(x: number, y: number) {
+        const left = this.getLeftSizeArea();
+        const right = this.getRightSizeArea();
+        const rangeArea = this.getRangeArea();
+
+        if (left.includes(x, y)) {
+            this.desktop.cursor = "w-resize";
+            this.leftDown(x, y);
+        } else if (right.includes(x, y)) {
+            this.desktop.cursor = "e-resize";
+            this.rightDown(x, y);
+        } else if (rangeArea.includes(x, y)) {
+            this.desktop.cursor = "pointer";
             this.rangeDown(x, y);
         }
     }
     rangeDown(x: number, y: number) {
-        this.dragState = { pos: x, start: this.range_.start, end: this.range_.end };
+        this.dragState = { pos: x, start: this.range_.start, end: this.range_.end, type: DragType.move };
+        this.mouseState = MouseState.down;
+
+    }
+    leftDown(x: number, y: number) {
+        this.dragState = { pos: x, start: this.range_.start, end: this.range_.end, type: DragType.leftsize };
+        this.mouseState = MouseState.down;
+    }
+    rightDown(x: number, y: number) {
+        this.dragState = { pos: x, start: this.range_.start, end: this.range_.end, type: DragType.rightsize };
         this.mouseState = MouseState.down;
     }
     toRange(x: number) {
         return (this.max - this.min) * (x) / (this.area.width - 64);
     }
     mousemove(x: number, y: number) {
-        if (this.dragState && this.mouseState == MouseState.down) {
+        if (this.mouseState != MouseState.down) {
+            const left = this.getLeftSizeArea();
+            const right = this.getRightSizeArea();
+            const rangeArea = this.getRangeArea();
+            if (left.includes(x, y)) {
+                this.desktop.cursor = "w-resize";
+            } else if (right.includes(x, y)) {
+                this.desktop.cursor = "e-resize";
+            } else if (rangeArea.includes(x, y)) {
+                this.desktop.cursor = "pointer";
+            } else {
+                this.desktop.cursor = "auto";
+            }
+        }
 
-            console.log("move", x, y);
-            this.range_.start = this.dragState.start + this.toRange((x - this.dragState.pos));
-            this.range_.end = this.dragState.end + this.toRange((x - this.dragState.pos));
-            this.render();
-            this.doChange();
+        if (this.dragState && this.mouseState == MouseState.down) {
+            if (this.dragState.type == DragType.move) {
+
+                this.range_.start = this.dragState.start + this.toRange((x - this.dragState.pos));
+                this.range_.end = this.dragState.end + this.toRange((x - this.dragState.pos));
+
+                this.render();
+                this.doChange();
+            } else if (this.dragState.type == DragType.leftsize) {
+                this.range_.start = this.dragState.start + this.toRange((x - this.dragState.pos));
+                //this.range_.end = this.dragState.end + this.toRange((x - this.dragState.pos));
+                if (this.range_.start > this.range_.end - 100) {
+                    this.range_.start = this.range_.end - 100;
+                }
+
+                this.render();
+                this.doChange();
+            } else if (this.dragState.type == DragType.rightsize) {
+                //this.range_.start = this.dragState.start + this.toRange((x - this.dragState.pos));
+                this.range_.end = this.dragState.end + this.toRange((x - this.dragState.pos));
+                if (this.range_.end < this.range_.start + 100) {
+                    this.range_.end = this.range_.start + 100;
+                }
+                this.render();
+                this.doChange();
+            }
         }
     }
     doChange() {
@@ -77,8 +150,11 @@ export class RangeBar extends AutoScaleWindow {
         }
     }
     set range(range: Range) {
+        this.dragState = null;
+        this.mouseState = MouseState.up;
         this.range_ = range;
         this.render();
+
     }
     render() {
         this.area.clear();

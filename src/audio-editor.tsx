@@ -17,6 +17,7 @@ interface AudioEditorState {
     outputName: string;
     audio: Audio | null;
     play: boolean;
+    zoom: boolean;
 }
 /** Helloコンポーネント */
 export default class AudioEditor extends React.Component<AudioEditorProps, AudioEditorState> {
@@ -31,6 +32,7 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
             loaded: false,
             play: false,
             audio: null,
+            zoom: false
         };
         this.audio = new Audio();
         this.openFile = this.openFile.bind(this);
@@ -52,14 +54,18 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
 
         this.setState({ ...this.state, play: !this.state.play });
     }
-
+    zoom() {
+        this.setState({ ...this.state, zoom: !this.state.zoom });
+    }
     render(): JSX.Element {
         return (
             <div>
                 <Button onClick={this.openFile} >Open</Button>
                 <Button onClick={this.play} disabled={!this.state.loaded}>{this.state.play ? "Stop" : "Play"}</Button>
+                <Button onClick={this.zoom.bind(this)} disabled={!this.state.loaded}>{"zoom"}</Button>
+
                 <br />
-                <WaveView width={800} height={480} onend={this.onend.bind(this)} audio={this.state.audio} play={this.state.play} source={this.state.buffer} />
+                <WaveView width={800} height={480} zoom={this.state.zoom} onend={this.onend.bind(this)} audio={this.state.audio} play={this.state.play} source={this.state.buffer} />
             </div>
         );
     }

@@ -17,6 +17,12 @@ export class Desktop extends CanvasWindow {
         this.focus = this;
         this.registerEvent();
     }
+    set cursor(cursor: string) {
+        this.canvas.style.cursor = cursor;
+    }
+    get cursor() {
+        return this.canvas.style.cursor;
+    }
     public static isFocusizer(event: string): event is Focusizer {
         return event == "click" || event == "mousedown";
     }
@@ -30,15 +36,16 @@ export class Desktop extends CanvasWindow {
         if (event == "mousemove") {
             if (this.thinOut()) { return; }
         }
+
         const x = e.offsetX;
         const y = e.offsetY;
         //console.log("event:", event, x, y);
-        this.handle(event, x, y);
+        this.handle(event, x, y, e.buttons);
     }
 
     //public handle(event: Focusizer, x: number, y: number, ...args: any[]): CanvasWindow;
     public handle<T extends string>(event: T, ...args: T extends Focusizer ? [number, number, ...any[]] : any[]): CanvasWindow {
-        if (Desktop.isFocusizer(event)) {
+        if (Desktop.isFocusizer(event) || (event == "mousemove" && args[2] == 0)) {
             let eventArgs = args as [number, number, ...any[]];
             return this.focus = (super.handle)(event, ...eventArgs);
         } else {

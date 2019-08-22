@@ -1,3 +1,4 @@
+import { Desktop } from "./desktop";
 
 interface IDrawable {
 
@@ -97,10 +98,12 @@ export class Area extends Rect implements IArea, IDrawable {
 export class CanvasWindow {
 
     public area: Area;
+    public hasHandler: boolean = true;
     protected children: CanvasWindow[] = [];
     protected handlers: { [event: string]: (...args: any[]) => void };
 
     private lastTime: Date = new Date();
+    public desktop: Desktop;
     private * getParents() {
         let parent = this.parent;
         while (parent) {
@@ -110,6 +113,15 @@ export class CanvasWindow {
     }
 
     constructor(protected parent: CanvasWindow | null, area?: Area) {
+        if (parent instanceof Desktop) {
+            this.desktop = parent;
+        } else if (parent) {
+            this.desktop = parent.desktop;
+        } else if (this instanceof Desktop) {
+            this.desktop = this;
+        } else {
+            throw new Error("there's no desktop");
+        }
         this.handlers = {};
         if (parent) {
             this.area = Area.from(parent.area);
@@ -160,7 +172,7 @@ export class CanvasWindow {
 
     protected getChildByArea(x: number, y: number) {
         for (let child of this.children.reverse()) {
-            if (child.area.includes(x, y)) {
+            if (child.hasHandler && child.area.includes(x, y)) {
                 return child;
             }
         }

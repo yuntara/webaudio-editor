@@ -6,6 +6,7 @@ import Audio from "./lib/audio";
 import { Desktop } from './lib/canvas-window/desktop';
 import { PaintBox } from './lib/canvas-window/paint-box';
 import { RangeBar } from "./lib/canvas-window/range-bar";
+import { Selector } from './lib/canvas-window/selector';
 /** Helloコンポーネントで取得するpropsの型定義 */
 interface WaveViewProps {
     source: AudioBuffer | undefined | null;
@@ -13,6 +14,7 @@ interface WaveViewProps {
     height: number;
     audio: Audio | null;
     play: boolean;
+    zoom: boolean;
     onend?: () => {};
 }
 interface Range {
@@ -44,6 +46,7 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
     private playInterval: number = 0;
     private audiosource: AudioBufferSourceNode | null = null;
     private requested: boolean = false;
+    private selector: Selector | null = null;
     constructor(props: WaveViewProps) {
         super(props);
         this.state = {
@@ -59,11 +62,22 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
         this.animate();
     }
     componentDidUpdate(oldProps: WaveViewProps) {
+
         const newProps = this.props;
-        if (oldProps.source !== newProps.source && newProps.source && this.rangeBar) {
+        if (oldProps.source !== newProps.source && newProps.source && this.rangeBar && this.selector) {
             this.rangeBar.min = 0;
             this.rangeBar.max = newProps.source.getChannelData(0).length;
             this.rangeBar.range = { start: 0, end: 640 };//this.rangeBar.max / 200 };
+            this.selector.min = this.rangeBar.range.start;
+            this.selector.max = this.rangeBar.range.end;
+
+        }
+        if (oldProps.zoom != newProps.zoom && this.rangeBar && this.selector && this.canvas) {
+
+            this.rangeBar.range = { start: this.rangeBar.range.start, end: this.rangeBar.range.start + this.canvas.width };
+            this.selector.min = this.rangeBar.range.start;
+            this.selector.max = this.rangeBar.range.end;
+            this.changeRange();
 
         }
         if (oldProps.play != newProps.play && this.props.audio && this.props.source && this.rangeBar) {
@@ -124,6 +138,7 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
             const span = 1;
 
             for (let channel of channels) {
+                let initialLine = true;
                 for (let i = 0; i < width; i++) {
 
                     var pos = Math.floor(range.start + (range.end - range.start) * (i / width));
@@ -137,8 +152,9 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
                         }
                         v = (n + 0.5) * channelHeight + (v * channelHeight / 2);
 
-                        if (i === 0) {
+                        if (initialLine) {
                             ctx.moveTo(i, v);
+                            initialLine = false;
                         } else {
                             ctx.lineTo(i, v);
                         }
@@ -148,6 +164,16 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
                 ++n;
             }
             ctx.stroke();
+            if (this.selector && this.rangeBar && this.selector.range) {
+                ctx.fillStyle = "rgba(128,128,128,0.5)";
+                const startx = this.rangeBar.range.start;
+                const endx = this.rangeBar.range.end;
+
+                const pos_sx = (this.selector.range.start - startx) * ctx.width / (endx - startx);
+                const pos_ex = (this.selector.range.end - startx) * ctx.width / (endx - startx);
+                ctx.fillRect(pos_sx, 0, pos_ex - pos_sx, ctx.height);
+                //console.log("draw selector", pos_sx, pos_ex);
+            }
             if (this.rangeBar) {
 
                 if (this.playing && this.props.audio) {
@@ -168,6 +194,10 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
 
                         this.setState({ ...this.state, range: { start: this.rangeBar.range.start, end: this.rangeBar.range.end } });
                         this.rangeBar.range = newRange;
+                        if (this.selector) {
+                            this.selector.min = this.rangeBar.range.start;
+                            this.selector.max = this.rangeBar.range.end;
+                        }
                     }
                     if (this.rangeBar.range.end - this.rangeBar.range.start > 3000) {
                         ctx.strokeStyle = "rgb(255,0,0)";
@@ -204,8 +234,17 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
 
     }
     changeRange() {
-        if (this.rangeBar) {
+        if (this.rangeBar && this.selector) {
+            this.selector.min = this.rangeBar.range.start;
+            this.selector.max = this.rangeBar.range.end;
+
             this.setState({ ...this.state, range: { start: this.rangeBar.range.start, end: this.rangeBar.range.end } });
+            this.renderCanvas();
+        }
+    }
+    changeSelector() {
+        if (this.selector) {
+            //this.setState({ ...this.state, range: { start: this.rangeBar.range.start, end: this.rangeBar.range.end } });
             this.renderCanvas();
         }
     }
@@ -224,18 +263,16 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
         this.box = new PaintBox(this.desktop);
         //this.box.area.y = 20;
         this.box.area.height = this.canvas.height - 50;
+        this.box.hasHandler = false;
         this.rangeBar = new RangeBar(this.desktop);
         this.rangeBar.area.y = this.canvas.height - 40;
-
-
         this.rangeBar.change(this.changeRange.bind(this));
-        /*
-                this.openButton = new Button(this.desktop);
-                this.openButton.area.set(0, 0, 50, 20);
-                this.openButton.text = "Open";
-                this.openButton.click = () => {
-                    alert("?");
-                };*/
+
+        this.selector = new Selector(this.desktop);
+        this.selector.area.height = this.box.area.height;
+        this.selector.change(this.changeSelector.bind(this));
+
+
     }
     render() {
         return <canvas ref={this.setCanvas.bind(this)} width={this.props.width} height={this.props.height}></canvas>
