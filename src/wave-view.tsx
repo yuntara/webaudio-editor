@@ -82,9 +82,9 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
         }
         if (oldProps.play != newProps.play && this.props.audio && this.props.source && this.rangeBar) {
             if (newProps.play) {
-
+                const startPos = Math.max(0, this.rangeBar.range.start);
                 this.audiosource = this.props.audio.play(this.props.source,
-                    this.props.audio.getSecond(this.props.source, this.rangeBar.range.start),
+                    this.props.audio.getSecond(this.props.source, startPos),
                     undefined,
                     //this.props.audio.getSecond(this.props.source, this.rangeBar.range.end - this.rangeBar.range.start),
                     () => {
@@ -97,7 +97,7 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
                 );
                 this.playing = {
                     starttime: this.props.audio.currentTime(),
-                    playpos: this.rangeBar.range.start
+                    playpos: startPos
                 };
                 this.updated = true;
             } else {
@@ -191,9 +191,9 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
                             const endx = newRange.end;
                             pos = (this.playing.playpos + duration - startx) * ctx.width / (endx - startx);
                         }
-
-                        this.setState({ ...this.state, range: { start: this.rangeBar.range.start, end: this.rangeBar.range.end } });
                         this.rangeBar.range = newRange;
+                        this.setState({ ...this.state, range: { start: this.rangeBar.range.start, end: this.rangeBar.range.end } });
+
                         if (this.selector) {
                             this.selector.min = this.rangeBar.range.start;
                             this.selector.max = this.rangeBar.range.end;
