@@ -69,7 +69,9 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
         if (oldProps.source !== newProps.source && newProps.source && this.rangeBar && this.selector) {
             this.rangeBar.min = 0;
             this.rangeBar.max = newProps.source.getChannelData(0).length;
-            this.rangeBar.range = { start: 0, end: 640 };//this.rangeBar.max / 200 };
+            this.rangeBar.range = { start: 0, end: 44100 * 10 };//this.rangeBar.max / 200 };
+            this.setState({ ...this.state, range: this.rangeBar.range });
+
             this.selector.min = this.rangeBar.range.start;
             this.selector.max = this.rangeBar.range.end;
 
