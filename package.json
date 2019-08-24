@@ -14,6 +14,7 @@
     "@material-ui/core": "^4.3.2",
     "awesome-typescript-loader": "^5.2.1",
     "hard-source-webpack-plugin": "^0.13.1",
+    "lamejs": "^1.2.0",
     "source-map-loader": "^0.2.4",
     "typescript": "^3.5.3",
     "webpack": "^4.39.2",
@@ -23,7 +24,6 @@
     "@material-ui/icons": "^4.2.1",
     "@types/react": "^16.9.2",
     "@types/react-dom": "^16.8.5",
-    "lamejs": "^1.2.0",
     "react": "^16.9.0",
     "react-dom": "^16.9.0"
   }

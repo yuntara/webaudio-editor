@@ -15,6 +15,8 @@ interface WaveViewProps {
     audio: Audio | null;
     play: boolean;
     zoom: boolean;
+    canvasUpdate: boolean;
+    onselect?: (range: Range | null) => {};
     onend?: () => {};
 }
 interface Range {
@@ -79,6 +81,9 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
             this.selector.max = this.rangeBar.range.end;
             this.changeRange();
 
+        }
+        if (oldProps.canvasUpdate != newProps.canvasUpdate) {
+            this.renderCanvas();
         }
         if (oldProps.play != newProps.play && this.props.audio && this.props.source && this.rangeBar) {
             if (newProps.play) {
@@ -246,7 +251,11 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
         if (this.selector) {
             //this.setState({ ...this.state, range: { start: this.rangeBar.range.start, end: this.rangeBar.range.end } });
             this.renderCanvas();
+            if (this.props.onselect) {
+                this.props.onselect(this.selector.range);
+            }
         }
+
     }
     setCanvas(e: HTMLCanvasElement | null) {
         if (e && !this.canvas) {
