@@ -1,6 +1,7 @@
 var HardSourceWebpackPlugin = require('hard-source-webpack-plugin');
 
 module.exports = {
+  mode: "development",
   entry: "./src/app.tsx",
   output: {
     filename: "bundle.js",

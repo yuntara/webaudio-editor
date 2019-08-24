@@ -1,19 +1,25 @@
 /* reactとreact-domの読み込み */
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { Button } from '@material-ui/core';
+import { Button, Select, MenuItem } from '@material-ui/core';
 import * as file from "./lib/file";
 import Audio from "./lib/audio";
-import WaveView from "./wave-view";
+import { WaveView, ViewMode } from "./wave-view";
 import { Range } from './lib/canvas-window/range-bar';
 import * as lamejs from "lamejs";
 import SelectInput from '@material-ui/core/Select/SelectInput';
 import LinearProgress from '@material-ui/core/LinearProgress';
 
+interface HTMLSelectEvent extends Event {
+    target: HTMLSelectElement & EventTarget;
+}
+
+
 /** Helloコンポーネントで取得するpropsの型定義 */
 interface AudioEditorProps {
 
 }
+
 /** Helloコンポーネントのstateの型定義 */
 interface AudioEditorState {
     inputName: string;
@@ -27,6 +33,7 @@ interface AudioEditorState {
     canvasUpdate: boolean;
     saving: boolean;
     savingProgress: number;
+    viewMode: ViewMode;
 }
 /** Helloコンポーネント */
 export default class AudioEditor extends React.Component<AudioEditorProps, AudioEditorState> {
@@ -45,7 +52,8 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
             selected: null,
             canvasUpdate: false,
             saving: false,
-            savingProgress: 0
+            savingProgress: 0,
+            viewMode: ""
         };
         this.audio = new Audio();
         this.openFile = this.openFile.bind(this);
@@ -89,6 +97,11 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
     }
     canvasUpdate() {
         this.setState({ ...this.state, canvasUpdate: !this.state.canvasUpdate });
+    }
+    changeVideMode(event: HTMLSelectEvent | null) {
+        if (event) {
+            this.setState({ ...this.state, viewMode: event.target ? event.target.value as ViewMode : "" });
+        }
     }
     getIntBuffer(channel: number, blocksize: number) {
         if (!this.buffer) {
@@ -162,7 +175,18 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
                 <Button onClick={this.zoom.bind(this)} disabled={!this.state.loaded}>{"zoom"}</Button>
                 <Button onClick={this.silent.bind(this)} disabled={!this.state.selected}>{"toSlilent"}</Button>
                 <Button onClick={this.save.bind(this)} disabled={!this.state.loaded}>{"Save"}</Button>
+                <Select
+                    value={this.state.viewMode}
+                    onChange={this.changeVideMode.bind(this)}
 
+                >
+                    <MenuItem value={""} selected>Normal</MenuItem>
+                    <MenuItem value={"normalize"}>Normalize</MenuItem>
+                    <MenuItem value={"sqrt"}>Sqrt</MenuItem>
+                    <MenuItem value={"spectrum"}>Spectrum</MenuItem>
+                    <MenuItem value={"spectrum-color"}>ColorSpectrum</MenuItem>
+
+                </Select>
                 {
                     (this.state.saving) ?
                         <LinearProgress variant="determinate" value={this.state.savingProgress} />
@@ -170,7 +194,7 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
                 }
                 <br />
                 <br />
-                <WaveView width={800} canvasUpdate={this.state.canvasUpdate} onselect={this.select.bind(this)} height={480} zoom={this.state.zoom} onend={this.onend.bind(this)} audio={this.state.audio} play={this.state.play} source={this.state.buffer} />
+                <WaveView width={800} viewMode={this.state.viewMode} canvasUpdate={this.state.canvasUpdate} onselect={this.select.bind(this)} height={480} zoom={this.state.zoom} onend={this.onend.bind(this)} audio={this.state.audio} play={this.state.play} source={this.state.buffer} />
             </div>
         );
     }

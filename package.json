@@ -13,6 +13,7 @@
   "devDependencies": {
     "@material-ui/core": "^4.3.2",
     "awesome-typescript-loader": "^5.2.1",
+    "fft-js": "0.0.12",
     "hard-source-webpack-plugin": "^0.13.1",
     "lamejs": "^1.2.0",
     "source-map-loader": "^0.2.4",

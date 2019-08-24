@@ -7,14 +7,19 @@ import { Desktop } from './lib/canvas-window/desktop';
 import { PaintBox } from './lib/canvas-window/paint-box';
 import { RangeBar } from "./lib/canvas-window/range-bar";
 import { Selector } from './lib/canvas-window/selector';
+declare function require(x: string): any;
+import * as fft from "fft-js";
+
+export type ViewMode = null | undefined | "" | "sqrt" | "normalize" | "spectrum" | "spectrum-color";
 /** Helloコンポーネントで取得するpropsの型定義 */
-interface WaveViewProps {
+export interface WaveViewProps {
     source: AudioBuffer | undefined | null;
     width: number;
     height: number;
     audio: Audio | null;
     play: boolean;
     zoom: boolean;
+    viewMode?: ViewMode;
     canvasUpdate: boolean;
     onselect?: (range: Range | null) => {};
     onend?: () => {};
@@ -37,7 +42,7 @@ interface PlayState {
     playpos: number;
 }
 /** Helloコンポーネント */
-export default class WaveView extends React.Component<WaveViewProps, WaveViewState> {
+export class WaveView extends React.Component<WaveViewProps, WaveViewState> {
     private canvas: HTMLCanvasElement | null;
     private updated: boolean = true;
     private ctx: CanvasRenderingContext2D | null;
@@ -49,6 +54,7 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
     private audiosource: AudioBufferSourceNode | null = null;
     private requested: boolean = false;
     private selector: Selector | null = null;
+
     constructor(props: WaveViewProps) {
         super(props);
         this.state = {
@@ -83,6 +89,9 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
             this.selector.max = this.rangeBar.range.end;
             this.changeRange();
 
+        }
+        if (oldProps.viewMode != newProps.viewMode) {
+            this.renderCanvas();
         }
         if (oldProps.canvasUpdate != newProps.canvasUpdate) {
             this.renderCanvas();
@@ -143,32 +152,129 @@ export default class WaveView extends React.Component<WaveViewProps, WaveViewSta
             const channelHeight = height / channels.length;
             let n = 0;
             const span = 1;
+            let norm = 0.01;
+            if (this.props.viewMode == "normalize") {
+                for (let channel of channels) {
 
-            for (let channel of channels) {
-                let initialLine = true;
-                for (let i = 0; i < width; i++) {
+                    for (let i = 0; i < width; i++) {
 
-                    var pos = Math.floor(range.start + (range.end - range.start) * (i / width));
-                    if (pos >= 0 && pos < channel.length) {
-                        let v = 0;
-                        for (let j = 0; j < span; j++) {
-                            const nv = channel[pos + j - Math.floor(span / width)];
-                            if (Math.abs(nv) > Math.abs(v)) {
-                                v = nv;
+                        var pos = Math.floor(range.start + (range.end - range.start) * (i / width));
+                        if (pos >= 0 && pos < channel.length) {
+                            let v = 0;
+                            for (let j = 0; j < span; j++) {
+                                const nv = channel[pos + j - Math.floor(span / width)];
+                                if (Math.abs(nv) > Math.abs(v)) {
+                                    v = nv;
+                                }
+                            }
+                            if (Math.abs(v) > norm) {
+                                norm = Math.abs(v);
                             }
                         }
-                        v = (n + 0.5) * channelHeight + (v * channelHeight / 2);
+                    }
+                }
+            }
 
-                        if (initialLine) {
-                            ctx.moveTo(i, v);
-                            initialLine = false;
+
+
+
+
+
+            if (this.props.viewMode == "spectrum" || this.props.viewMode == "spectrum-color") {
+                n = 0;
+                for (let channel of channels) {
+
+                    var pos = Math.floor(range.start);
+                    var buffer = channel.subarray(pos, pos + 4096).map((v, i) => {
+                        const x = i / 4096;
+                        return v * (0.54 - 0.47 * Math.cos(2 * Math.PI * x));
+                    });
+
+                    let phaser: number[];
+                    if (this.props.viewMode == "spectrum-color") {
+                        ctx.fillStyle = "rgb(0,0,0)";
+                        ctx.fillRect(0, n * channelHeight, width, channelHeight);
+                        phaser = fft.fft(buffer).map(x => {
+                            return Math.min(1, Math.max(0,
+                                -0.2 + (Math.log(Math.sqrt(x[0] * x[0] + x[1] * x[1]) + 0.001) / Math.log(10)) / 2
+
+                            ));
+                        });
+                    } else {
+                        phaser = fft.fft(buffer).map(x => {
+                            return Math.min(1, Math.max(0,
+                                -0.2 + (Math.log(Math.sqrt(x[0] * x[0] + x[1] * x[1]) + 0.001) / Math.log(10)) / 3
+                            ));
+                        });
+                    }
+                    for (let i = 0; i < 2048; i++) {
+                        let v = phaser[i];
+
+                        const x = (Math.log(i + 1) / Math.log(2048)) * width;
+
+
+                        if (this.props.viewMode == "spectrum-color") {
+                            const color = Math.max(0, Math.min(255, Math.floor(255 * (v))));
+                            ctx.fillStyle = `rgba(0,0,${color},64)`;
+
+                            //const wid = (Math.log(i + 2) / Math.log(2048)) * width - x;
+                            const wid = (Math.log((i + 2) / (i + 1)) / Math.log(2048)) * width;
+
+                            ctx.fillRect(x, n * channelHeight, Math.max(2, wid), channelHeight);
+
                         } else {
-                            ctx.lineTo(i, v);
+                            v = (n + 1) * channelHeight + (-v * channelHeight);
+
+                            ctx.moveTo(x, (n + 1) * channelHeight);
+                            ctx.lineTo(x, v);
+                        }
+
+                    }
+                    ++n;
+                }
+
+            } else {
+                for (let channel of channels) {
+                    let initialLine = true;
+
+                    for (let i = 0; i < width; i++) {
+
+
+                        var pos = Math.floor(range.start + (range.end - range.start) * (i / width));
+                        if (pos >= 0 && pos < channel.length) {
+                            let v = 0;
+                            for (let j = 0; j < span; j++) {
+                                const nv = channel[pos + j - Math.floor(span / width)];
+                                if (Math.abs(nv) > Math.abs(v)) {
+                                    v = nv;
+                                }
+                            }
+                            if (this.props.viewMode == "normalize") {
+                                v = v / norm;
+                            } else if (this.props.viewMode == "sqrt") {
+                                if (v > 0) {
+                                    v = Math.max(0, Math.sqrt(v));
+
+                                } else if (v < 0) {
+                                    v = -Math.max(0, Math.sqrt(-v));
+                                } else {
+                                    v = 0;
+                                }
+                            }
+                            v = (n + 0.5) * channelHeight + (v * channelHeight / 2);
+
+                            if (initialLine) {
+                                ctx.moveTo(i, v);
+                                initialLine = false;
+                            } else {
+                                ctx.lineTo(i, v);
+                            }
                         }
                     }
-
+                    ++n;
                 }
-                ++n;
+
+
             }
             ctx.stroke();
             if (this.selector && this.rangeBar && this.selector.range) {
