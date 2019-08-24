@@ -109,7 +109,7 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
         return intbuffer;
     }
     async sleep() {
-        return new Promise(resolve => setTimeout(resolve, 100));
+        return new Promise(resolve => setTimeout(resolve, 1));
     }
     async save() {
         if (!this.buffer) { return; }
@@ -121,7 +121,7 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
         console.log("getBuffer");
         let left = this.getIntBuffer(0, sampleBlockSize); //one second of silence (get your data from the source you have)
         let right = this.getIntBuffer(1, sampleBlockSize); //one second of silence (get your data from the source you have)
-        const timer = 50;
+        const timer = 150;
         let start = new Date();
         console.log(sampleBlockSize);
         for (var i = 0; i < left.length; i += sampleBlockSize) {
