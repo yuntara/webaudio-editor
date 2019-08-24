@@ -102,7 +102,7 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
             if (i >= floatbuffer.length) {
                 intbuffer[i] = 0;
             } else {
-                intbuffer[i] = Math.round(floatbuffer[i] * 32767);
+                intbuffer[i] = Math.round(floatbuffer[i] * 0.9 * 32767);
             }
         }
 
