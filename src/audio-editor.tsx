@@ -170,7 +170,12 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
     generate() {
         const code = prompt("x : position,n :channel 0-,v : now channel data");
         if (code) {
-            const func = new Function("x", "n", "v", code);
+
+            const func = new Function("x", "n", "v", `
+            function h(s){
+                return Math.sin(s*${2 * Math.PI / (this.buffer ? this.buffer.sampleRate : 44100)});
+            };\n`+
+                code);
 
             const range = this.state.selected;
             if (!range || !this.buffer) {
@@ -196,9 +201,9 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
                 <Button onClick={this.play} disabled={!this.state.loaded}>{this.state.play ? "Stop" : "Play"}</Button>
                 <Button onClick={this.zoom.bind(this)} disabled={!this.state.loaded}>{"zoom"}</Button>
                 <Button onClick={this.silent.bind(this)} disabled={!this.state.selected}>{"toSlilent"}</Button>
-                <Button onClick={this.silent.bind(this)} disabled={!this.state.selected}>{"toSlilent"}</Button>
+                <Button onClick={this.generate.bind(this)} disabled={!this.state.selected}>{"Generate"}</Button>
 
-                <Button onClick={this.generate.bind(this)} disabled={!this.state.loaded}>{"Generate"}</Button>
+                <Button onClick={this.save.bind(this)} disabled={!this.state.loaded}>{"Save"}</Button>
                 <Select
                     value={this.state.viewMode}
                     onChange={this.changeVideMode.bind(this)}
