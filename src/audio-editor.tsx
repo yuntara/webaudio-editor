@@ -167,6 +167,28 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
         downLoadLink.click();
         this.setState({ ...this.state, saving: false });
     }
+    generate() {
+        const code = prompt("x : position,n :channel 0-,v : now channel data");
+        if (code) {
+            const func = new Function("x", "n", "v", code);
+
+            const range = this.state.selected;
+            if (!range || !this.buffer) {
+                return;
+            }
+            const buffer = this.buffer;
+            const channels = [0, 1].map(n => buffer.getChannelData(n));
+            let n = 0;
+            for (let channel of channels) {
+                for (let i = range.start; i < range.end; ++i) {
+                    channel[i] = func(i - range.start, n, channel[i]);
+                }
+                ++n;
+            }
+            this.canvasUpdate();
+
+        }
+    }
     render(): JSX.Element {
         return (
             <div>
@@ -174,7 +196,9 @@ export default class AudioEditor extends React.Component<AudioEditorProps, Audio
                 <Button onClick={this.play} disabled={!this.state.loaded}>{this.state.play ? "Stop" : "Play"}</Button>
                 <Button onClick={this.zoom.bind(this)} disabled={!this.state.loaded}>{"zoom"}</Button>
                 <Button onClick={this.silent.bind(this)} disabled={!this.state.selected}>{"toSlilent"}</Button>
-                <Button onClick={this.save.bind(this)} disabled={!this.state.loaded}>{"Save"}</Button>
+                <Button onClick={this.silent.bind(this)} disabled={!this.state.selected}>{"toSlilent"}</Button>
+
+                <Button onClick={this.generate.bind(this)} disabled={!this.state.loaded}>{"Generate"}</Button>
                 <Select
                     value={this.state.viewMode}
                     onChange={this.changeVideMode.bind(this)}
